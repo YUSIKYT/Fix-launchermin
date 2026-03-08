@@ -16,6 +16,7 @@
             --primary: #ff4646;
             --primary-hover: #ff6161;
             --bg: #050505;
+            --star-color: #ffcc00;
         }
 
         body {
@@ -41,7 +42,6 @@
 
         .background-fixed {
             position: absolute;
-            /* Экстремальное увеличение масштаба и смещение вверх, чтобы закрыть любые дыры */
             top: -50%;
             left: -40%;
             width: 180%;
@@ -52,14 +52,12 @@
             will-change: transform, opacity;
         }
 
-        /* Первый фон */
         #bg-1 {
             background-image: url('https://www.minecraft.net/content/dam/minecraftnet/community/events/cy2025/sandstorm/Wallpapers_Carousel_MCM-Vista_1110x624.jpg');
             z-index: 1;
             opacity: 1;
         }
 
-        /* Второй фон (теперь с еще большим запасом сверху) */
         #bg-2 {
             background-image: url('https://www.minecraft.net/content/dam/minecraftnet/community/events/cy2025/sandstorm/Wallpapers_Carousel_MCM-Portal_1110x624.jpg');
             opacity: 0;
@@ -187,6 +185,33 @@
             transform: translateX(10px);
             border-left: 4px solid var(--primary);
         }
+
+        /* Звезды рейтинга */
+        .star-rating {
+            display: flex;
+            gap: 4px;
+        }
+        .star {
+            cursor: pointer;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.2);
+            transition: all 0.2s ease;
+        }
+        .star.active {
+            color: var(--star-color);
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+        }
+        .star:hover {
+            transform: scale(1.2);
+        }
+        .star-small {
+            font-size: 12px;
+            color: var(--star-color);
+        }
+        .star-empty {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.1);
+        }
     </style>
 </head>
 <body class="flex flex-col items-center">
@@ -231,6 +256,9 @@
         <div class="flex flex-col gap-10">
             <div class="text-center">
                 <h2 class="text-3xl font-black uppercase mb-2 tracking-tighter">Отзывы <span class="text-red-500">игроков</span></h2>
+                <div id="average-rating" class="text-[10px] uppercase font-black tracking-widest opacity-60 mb-4 flex items-center justify-center gap-2">
+                    <!-- Сюда вставим средний рейтинг -->
+                </div>
                 <div class="h-1 w-20 bg-red-500 mx-auto rounded-full"></div>
             </div>
 
@@ -239,6 +267,18 @@
                     <div class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                         <svg width="100" height="100" viewBox="0 0 24 24" fill="white"><path d="M14.017 21L14.017 18C14.017 16.8954 13.1216 16 12.017 16H10.017C8.91244 16 8.01701 16.8954 8.01701 18L8.01701 21M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM12 7C13.6569 7 15 8.34315 15 10C15 11.6569 13.6569 13 12 13C10.3431 13 9 11.6569 9 10C9 8.34315 10.3431 7 12 7Z"/></svg>
                     </div>
+                    
+                    <div class="flex flex-col gap-2 mb-2">
+                        <label class="text-[10px] uppercase font-black tracking-widest opacity-50 ml-1">Ваша оценка</label>
+                        <div class="star-rating" id="starSelector">
+                            <span class="star active" data-value="1">★</span>
+                            <span class="star active" data-value="2">★</span>
+                            <span class="star active" data-value="3">★</span>
+                            <span class="star active" data-value="4">★</span>
+                            <span class="star active" data-value="5">★</span>
+                        </div>
+                    </div>
+
                     <input type="text" id="userName" placeholder="Ваш никнейм" class="comment-input px-6 py-4 rounded-xl focus:outline-none font-bold uppercase text-xs tracking-widest">
                     <textarea id="commentText" placeholder="Напишите ваш отзыв здесь..." rows="3" class="comment-input px-6 py-4 rounded-xl resize-none focus:outline-none"></textarea>
                     <button onclick="sendComment()" id="submitBtn" class="btn-premium py-4 rounded-xl text-xs font-black uppercase tracking-widest">Опубликовать отзыв</button>
@@ -276,14 +316,63 @@
 
         signInAnonymously(auth).catch(err => console.error("Ошибка анонимного входа:", err));
 
+        let currentRating = 5;
+
+        // Логика выбора звезд
+        const stars = document.querySelectorAll('#starSelector .star');
+        stars.forEach(star => {
+            star.onclick = () => {
+                currentRating = parseInt(star.getAttribute('data-value'));
+                updateStarUI();
+            };
+        });
+
+        function updateStarUI() {
+            stars.forEach(s => {
+                const val = parseInt(s.getAttribute('data-value'));
+                if(val <= currentRating) s.classList.add('active');
+                else s.classList.remove('active');
+            });
+        }
+
+        function renderStars(rating) {
+            let html = '';
+            for(let i=1; i<=5; i++) {
+                if(i <= rating) html += '<span class="star-small">★</span>';
+                else html += '<span class="star-empty">★</span>';
+            }
+            return html;
+        }
+
         function initComments() {
             const colRef = collection(db, 'reviews');
             onSnapshot(colRef, (snapshot) => {
                 const list = document.getElementById('commentsList');
+                const avgContainer = document.getElementById('average-rating');
                 if (!list) return;
                 
                 let docs = [];
-                snapshot.forEach(d => docs.push(d.data()));
+                let totalStars = 0;
+                let count = 0;
+                
+                snapshot.forEach(d => {
+                    const data = d.data();
+                    docs.push(data);
+                    // Считаем только те отзывы, где есть рейтинг
+                    if (data.rating !== undefined) {
+                        totalStars += Number(data.rating);
+                        count++;
+                    }
+                });
+
+                // Расчет РЕАЛЬНОГО среднего рейтинга
+                if(count > 0) {
+                    const avg = (totalStars / count).toFixed(1);
+                    avgContainer.innerHTML = `Средний рейтинг: <span class="text-yellow-400">${avg}</span> ${renderStars(Math.round(avg))}`;
+                } else {
+                    avgContainer.innerHTML = `Средний рейтинг: <span class="text-yellow-400">0.0</span> ${renderStars(0)}`;
+                }
+
                 docs.sort((a, b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
                 
                 list.innerHTML = '';
@@ -302,10 +391,11 @@
                     div.innerHTML = `
                         <div class="user-avatar mt-1 text-red-500">${firstLetter}</div>
                         <div class="flex-1">
-                            <div class="flex justify-between items-center mb-2">
+                            <div class="flex justify-between items-center mb-1">
                                 <span class="text-red-500 font-black text-[11px] uppercase tracking-widest">${data.name || 'Игрок'}</span>
-                                <span class="text-[9px] opacity-40 font-bold uppercase text-white">Проверенный отзыв</span>
+                                <div class="flex gap-1">${renderStars(data.rating || 5)}</div>
                             </div>
+                            <div class="mb-2 text-[8px] opacity-30 font-bold uppercase tracking-widest">Проверенный отзыв</div>
                             <p class="text-sm opacity-90 leading-relaxed font-medium text-white">${data.text || ''}</p>
                         </div>
                     `;
@@ -331,9 +421,14 @@
                 await addDoc(collection(db, 'reviews'), {
                     name: name,
                     text: text,
+                    rating: currentRating,
                     time: serverTimestamp()
                 });
                 textInput.value = '';
+                nameInput.value = '';
+                currentRating = 5;
+                updateStarUI();
+                
                 btn.innerText = "ГОТОВО!";
                 gsap.to(btn, {scale: 1.1, duration: 0.2, yoyo: true, repeat: 1});
                 setTimeout(() => { 
@@ -366,7 +461,6 @@
             
             gsap.from(".download-section", { duration: 1, y: 30, opacity: 0, delay: 0.6, ease: "expo.out" });
             
-            // Параллакс движение обоих слоев (ограничили движение, чтобы фон не улетал слишком высоко)
             gsap.to(".background-fixed", {
                 y: "10%", 
                 ease: "none",
@@ -378,7 +472,6 @@
                 }
             });
 
-            // Плавное перетекание фонов
             gsap.to("#bg-1", {
                 opacity: 0,
                 ease: "power1.inOut",
