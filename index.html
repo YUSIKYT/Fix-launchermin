@@ -21,16 +21,6 @@
             background: radial-gradient(circle at center, rgba(255, 70, 70, 0.1) 0%, rgba(5, 5, 5, 1) 85%);
         }
 
-        .floating {
-            animation: floating 4s ease-in-out infinite;
-        }
-
-        @keyframes floating {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-12px); }
-            100% { transform: translateY(0px); }
-        }
-
         .btn-download {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             background: #ff4646;
@@ -49,7 +39,7 @@
 
         .screenshot-shadow {
             box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 30px rgba(255, 70, 70, 0.05);
-            border: 1px solid rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
         }
     </style>
 </head>
@@ -70,11 +60,6 @@
     <!-- Основной контент -->
     <main class="flex flex-col items-center text-center px-4 py-8 w-full max-w-6xl">
         
-        <!-- Логотип (из ONEPHOTO.png) -->
-        <div class="relative mb-8">
-            <img src="./ONEPHOTO.png" alt="FIX Launcher Logo" class="w-24 h-24 md:w-32 md:h-32 object-contain floating" onerror="this.style.display='none'">
-        </div>
-
         <h1 class="text-6xl md:text-8xl font-black mb-6 tracking-tighter uppercase leading-none">
             ИГРАЙ С <span class="text-red-500 text-glow">FIX</span>
         </h1>
@@ -83,10 +68,10 @@
             Новое поколение лаунчера для Minecraft. Максимальная производительность и удобство.
         </p>
 
-        <!-- Скриншот лаунчера (Photo1.png) -->
-        <div class="relative w-full max-w-4xl mb-20 px-4">
+        <!-- Основной скриншот лаунчера (Photo1.png) -->
+        <div class="relative w-full max-w-4xl mb-16 px-4">
             <div class="absolute -inset-2 bg-red-600 rounded-2xl blur-3xl opacity-5"></div>
-            <img src="./Photo1.png" alt="FIX Launcher Screenshot" class="relative rounded-2xl screenshot-shadow w-full h-auto" onerror="this.src='./Photo1.jpg'">
+            <img src="./Photo1.png" alt="FIX Launcher Screenshot" class="relative rounded-2xl screenshot-shadow w-full h-auto">
         </div>
 
         <!-- Кнопка скачивания -->
