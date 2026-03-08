@@ -102,10 +102,10 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // ТВОИ КЛЮЧИ (Обновлено на основе твоего скриншота)
+        // ТВОИ КЛЮЧИ
         const firebaseConfig = {
             apiKey: "AIzaSyDIoLNV7cBd_EIaAy1HuOQ9T1AdwzEWt_I",
             authDomain: "fixlaunchersite.firebaseapp.com",
@@ -121,7 +121,11 @@
         const auth = getAuth(app);
         let currentUser = null;
 
-        signInAnonymously(auth).catch(e => console.error("Auth failed:", e));
+        // Авторизация
+        signInAnonymously(auth)
+            .then(() => console.log("Успешный вход в Firebase"))
+            .catch(e => console.error("Ошибка входа:", e));
+
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             if (user) loadComments();
@@ -129,29 +133,38 @@
 
         function loadComments() {
             const colRef = collection(db, 'reviews');
+            // Простой запрос без сложных фильтров для стабильности
             onSnapshot(colRef, (snapshot) => {
                 const list = document.getElementById('commentsList');
                 list.innerHTML = '';
                 const docs = [];
-                snapshot.forEach(d => docs.push(d.data()));
+                snapshot.forEach(d => {
+                    const data = d.data();
+                    docs.push(data);
+                });
+
+                // Сортировка вручную в памяти
                 docs.sort((a, b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
                 
-                if(docs.length === 0) list.innerHTML = '<div class="text-center opacity-20 text-xs uppercase font-bold">Будь первым, кто оставит отзыв!</div>';
+                if(docs.length === 0) {
+                    list.innerHTML = '<div class="text-center opacity-20 text-xs uppercase font-bold">Будь первым, кто оставит отзыв!</div>';
+                }
                 
                 docs.forEach(data => {
                     const div = document.createElement('div');
                     div.className = 'glass p-5 rounded-2xl border border-white/5';
                     div.innerHTML = `
                         <div class="flex justify-between mb-2">
-                            <span class="text-red-500 font-black text-xs uppercase">${data.name}</span>
+                            <span class="text-red-500 font-black text-xs uppercase">${data.name || 'Аноним'}</span>
                         </div>
-                        <p class="text-sm opacity-70">${data.text}</p>
+                        <p class="text-sm opacity-70">${data.text || ''}</p>
                     `;
                     list.appendChild(div);
                 });
             }, (error) => {
-                console.error("Firestore Error:", error);
-                document.getElementById('commentsList').innerHTML = '<div class="text-center text-red-500 text-xs uppercase font-bold">Ошибка доступа. Проверьте Rules в Firebase!</div>';
+                console.error("Ошибка Firestore:", error);
+                document.getElementById('commentsList').innerHTML = 
+                    `<div class="text-center text-red-500 text-xs uppercase font-bold">Ошибка: ${error.message}. Проверьте Rules в Firebase!</div>`;
             });
         }
 
@@ -160,7 +173,15 @@
             const textInput = document.getElementById('commentText');
             const btn = document.getElementById('submitBtn');
 
-            if (!nameInput.value || !textInput.value || !currentUser) return;
+            if (!nameInput.value || !textInput.value) {
+                alert("Заполни все поля!");
+                return;
+            }
+
+            if (!currentUser) {
+                console.log("Ждем авторизации...");
+                return;
+            }
 
             btn.disabled = true;
             btn.innerText = "ОТПРАВКА...";
@@ -173,9 +194,12 @@
                 });
                 textInput.value = '';
                 btn.innerText = "ГОТОВО!";
-                setTimeout(() => { btn.disabled = false; btn.innerText = "ОТПРАВИТЬ"; }, 2000);
+                setTimeout(() => { 
+                    btn.disabled = false; 
+                    btn.innerText = "ОТПРАВИТЬ"; 
+                }, 2000);
             } catch (e) {
-                console.error(e);
+                console.error("Ошибка при отправке:", e);
                 btn.innerText = "ОШИБКА";
                 btn.disabled = false;
             }
