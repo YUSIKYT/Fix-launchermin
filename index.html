@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIX Launcher - Лучший лаунчер Minecraft</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0a;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .hero-gradient {
+            background: radial-gradient(circle at center, rgba(255, 70, 70, 0.15) 0%, rgba(10, 10, 10, 1) 70%);
+        }
+
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .btn-download {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(135deg, #ff4646 0%, #ff8a8a 100%);
+            box-shadow: 0 10px 20px -10px rgba(255, 70, 70, 0.5);
+        }
+
+        .btn-download:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 30px -10px rgba(255, 70, 70, 0.7);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between items-center hero-gradient">
+
+    <!-- Header / Navbar -->
+    <nav class="w-full max-w-6xl px-8 py-6 flex justify-between items-center">
+        <div class="text-2xl font-black tracking-tighter text-white">
+            FIX <span class="text-red-500">LAUNCHER</span>
+        </div>
+        <div class="hidden md:flex gap-8 text-sm font-medium opacity-70">
+            <a href="#" class="hover:opacity-100 transition-opacity">ГЛАВНАЯ</a>
+            <a href="#" class="hover:opacity-100 transition-opacity">ОСОБЕННОСТИ</a>
+            <a href="#" class="hover:opacity-100 transition-opacity">ПОДДЕРЖКА</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex flex-col items-center text-center px-4 mb-20">
+        <!-- Logo / Image from ONEPHOTO.png -->
+        <div class="relative mb-8">
+            <img src="ONEPHOTO.png" alt="FIX Launcher Logo" class="w-64 h-64 md:w-80 md:h-80 object-contain floating" onerror="this.src='https://via.placeholder.com/300/ff4646/ffffff?text=FIX+LOGO'">
+        </div>
+
+        <h1 class="text-5xl md:text-7xl font-black mb-4 tracking-tight">
+            ИГРАЙ С <span class="text-red-500 text-shadow-glow">FIX</span>
+        </h1>
+        
+        <p class="text-lg md:text-xl opacity-60 max-w-2xl mb-12 font-light leading-relaxed">
+            Новое поколение лаунчера для Minecraft. Максимальная производительность, 
+            удобный интерфейс и мгновенная установка модов.
+        </p>
+
+        <!-- Download Button -->
+        <a href="FIX-launcher.zip" download class="btn-download px-10 py-5 rounded-2xl text-xl font-bold flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="Status: 4 Download: 4-12 12m0 0l-4-4m4 4l4-4" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1" />
+            </svg>
+            СКАЧАТЬ FIX-launcher.zip
+        </a>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full py-10 border-t border-white/5 text-center text-xs opacity-30 uppercase tracking-widest">
+        &copy; 2024 FIX Launcher Team. Все права защищены.
+    </footer>
+
+</body>
+</html>
