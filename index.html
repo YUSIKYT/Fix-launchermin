@@ -61,6 +61,13 @@
             background: linear-gradient(135deg, rgba(255,70,70,0.3), rgba(255,255,255,0.05));
             box-shadow: 0 60px 120px -20px rgba(0,0,0,1);
         }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center">
@@ -70,9 +77,8 @@
         <div class="glass px-6 py-3 rounded-2xl">
             <span class="text-xl font-black tracking-tighter uppercase">FIX <span class="text-red-500">LAUNCHER</span></span>
         </div>
-        <div class="hidden md:flex gap-6 glass px-8 py-3 rounded-2xl text-[10px] font-bold opacity-70 tracking-widest uppercase">
-            <a href="#" class="hover:text-red-500">ГЛАВНАЯ</a>
-            <a href="#comments" class="hover:text-red-500">ОТЗЫВЫ</a>
+        <div id="auth-status" class="flex items-center gap-4">
+            <!-- Сюда подставится инфо о пользователе -->
         </div>
     </nav>
 
@@ -80,11 +86,7 @@
         <h1 class="text-6xl md:text-[8rem] font-black mb-10 tracking-tighter uppercase leading-[0.85]">
             ИГРАЙ С <span class="text-red-500">FIX</span>
         </h1>
-        <p class="text-base md:text-xl opacity-50 max-w-2xl mb-16">
-            Новое поколение лаунчера для Minecraft. Максимальная производительность и удобство.
-        </p>
-
-        <!-- Блок с фото (Photo1.png) -->
+        
         <div class="w-full max-w-4xl mb-24 px-4">
             <div class="screenshot-frame">
                 <img src="./Photo1.png" alt="FIX Launcher Interface" class="rounded-[22px] w-full h-auto block" onerror="this.src='https://via.placeholder.com/1200x675/111/ff4646?text=Photo1.png+Not+Found'">
@@ -100,14 +102,16 @@
         <div class="flex flex-col gap-10">
             <div class="text-center">
                 <h2 class="text-3xl font-black uppercase mb-2">Отзывы игроков</h2>
-                <p class="opacity-40 text-xs font-bold uppercase tracking-widest">Оставь свое мнение</p>
             </div>
 
-            <div class="glass p-8 rounded-3xl flex flex-col gap-4">
-                <input type="text" id="userName" placeholder="Твой ник" class="comment-input px-6 py-4 rounded-xl">
-                <textarea id="commentText" placeholder="Сообщение..." rows="3" class="comment-input px-6 py-4 rounded-xl resize-none"></textarea>
-                <button onclick="sendComment()" id="submitBtn" class="btn-premium py-4 rounded-xl text-xs font-black uppercase tracking-widest">Отправить</button>
-                <p id="errorStatus" class="text-[10px] text-red-500 font-bold uppercase text-center hidden"></p>
+            <div id="comment-form-container">
+                <!-- Форма появится только после входа -->
+                <div class="glass p-8 rounded-3xl text-center">
+                    <p class="opacity-60 mb-6 uppercase text-xs font-bold tracking-widest">Войдите, чтобы оставить отзыв</p>
+                    <button onclick="loginGoogle()" class="btn-premium px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest">
+                        Войти через Google
+                    </button>
+                </div>
             </div>
 
             <div id="commentsList" class="flex flex-col gap-4">
@@ -119,9 +123,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // ТВОИ КЛЮЧИ (С твоего скриншота)
         const firebaseConfig = {
             apiKey: "AIzaSyDIoLNV7cBd_EIaAy1HuOQ9T1AdwzEWt_I",
             authDomain: "fixlaunchersite.firebaseapp.com",
@@ -135,28 +138,57 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
-        let currentUser = null;
+        const provider = new GoogleAuthProvider();
 
-        // Вход
-        signInAnonymously(auth).catch(e => {
-            console.error("Auth error:", e);
-            showError("Firebase: Ошибка входа (включите Anonymous Auth)");
-        });
+        const authStatus = document.getElementById('auth-status');
+        const formContainer = document.getElementById('comment-form-container');
+
+        // Глобальные функции для кнопок
+        window.loginGoogle = () => {
+            signInWithPopup(auth, provider).catch(console.error);
+        };
+
+        window.logout = () => {
+            signOut(auth);
+        };
 
         onAuthStateChanged(auth, (user) => {
-            currentUser = user;
-            if (user) loadComments();
+            if (user) {
+                // Пользователь вошел
+                authStatus.innerHTML = `
+                    <div class="flex items-center gap-3 glass px-4 py-2 rounded-xl">
+                        <img src="${user.photoURL}" class="user-avatar">
+                        <span class="text-[10px] font-bold uppercase opacity-70">${user.displayName}</span>
+                        <button onclick="logout()" class="text-[10px] text-red-500 font-bold uppercase ml-2">Выйти</button>
+                    </div>
+                `;
+                
+                formContainer.innerHTML = `
+                    <div class="glass p-8 rounded-3xl flex flex-col gap-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-[10px] font-bold opacity-40 uppercase">Пишете как:</span>
+                            <span class="text-[10px] font-bold text-red-500 uppercase">${user.displayName}</span>
+                        </div>
+                        <textarea id="commentText" placeholder="Ваш отзыв..." rows="3" class="comment-input px-6 py-4 rounded-xl resize-none"></textarea>
+                        <button onclick="sendComment()" id="submitBtn" class="btn-premium py-4 rounded-xl text-xs font-black uppercase tracking-widest">Отправить отзыв</button>
+                    </div>
+                `;
+            } else {
+                // Пользователь не вошел
+                authStatus.innerHTML = '';
+                formContainer.innerHTML = `
+                    <div class="glass p-8 rounded-3xl text-center">
+                        <p class="opacity-60 mb-6 uppercase text-xs font-bold tracking-widest">Войдите, чтобы оставить отзыв</p>
+                        <button onclick="loginGoogle()" class="btn-premium px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest">
+                            Войти через Google
+                        </button>
+                    </div>
+                `;
+            }
+            loadComments();
         });
 
-        function showError(msg) {
-            const el = document.getElementById('errorStatus');
-            el.innerText = msg;
-            el.classList.remove('hidden');
-            setTimeout(() => el.classList.add('hidden'), 5000);
-        }
-
         function loadComments() {
-            // КОЛЛЕКЦИЯ ДОЛЖНА БЫТЬ 'reviews', КАК В ТВОИХ RULES
             const colRef = collection(db, 'reviews');
             onSnapshot(colRef, (snapshot) => {
                 const list = document.getElementById('commentsList');
@@ -165,49 +197,47 @@
                 snapshot.forEach(d => docs.push(d.data()));
                 docs.sort((a, b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
                 
-                if(docs.length === 0) list.innerHTML = '<div class="text-center opacity-20 text-xs uppercase font-bold">Будь первым!</div>';
+                if(docs.length === 0) list.innerHTML = '<div class="text-center opacity-20 text-xs uppercase font-bold">Отзывов пока нет</div>';
                 
                 docs.forEach(data => {
                     const div = document.createElement('div');
-                    div.className = 'glass p-5 rounded-2xl border border-white/5';
+                    div.className = 'glass p-5 rounded-2xl border border-white/5 flex gap-4 items-start';
                     div.innerHTML = `
-                        <div class="flex justify-between mb-2">
-                            <span class="text-red-500 font-black text-xs uppercase">${data.name || 'Игрок'}</span>
+                        <img src="${data.photo || 'https://via.placeholder.com/32'}" class="user-avatar mt-1">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span class="text-red-500 font-black text-[10px] uppercase">${data.name || 'Игрок'}</span>
+                            </div>
+                            <p class="text-sm opacity-70">${data.text || ''}</p>
                         </div>
-                        <p class="text-sm opacity-70">${data.text || ''}</p>
                     `;
                     list.appendChild(div);
                 });
-            }, (err) => {
-                console.error("Read Error:", err);
-                showError("Ошибка загрузки. Проверьте Rules!");
             });
         }
 
         window.sendComment = async () => {
-            const nameInput = document.getElementById('userName');
             const textInput = document.getElementById('commentText');
             const btn = document.getElementById('submitBtn');
+            const user = auth.currentUser;
 
-            if (!nameInput.value.trim() || !textInput.value.trim()) return;
-            if (!currentUser) { showError("Вход еще не выполнен..."); return; }
+            if (!textInput.value.trim() || !user) return;
 
             btn.disabled = true;
             btn.innerText = "ОТПРАВКА...";
 
             try {
-                // ПИШЕМ В 'reviews'
                 await addDoc(collection(db, 'reviews'), {
-                    name: nameInput.value.trim(),
+                    name: user.displayName,
+                    photo: user.photoURL,
                     text: textInput.value.trim(),
                     time: serverTimestamp()
                 });
                 textInput.value = '';
                 btn.innerText = "ГОТОВО!";
-                setTimeout(() => { btn.disabled = false; btn.innerText = "ОТПРАВИТЬ"; }, 2000);
+                setTimeout(() => { btn.disabled = false; btn.innerText = "ОТПРАВИТЬ ОТЗЫВ"; }, 2000);
             } catch (e) {
-                console.error("Write Error:", e);
-                showError("Ошибка записи! Проверьте Rules в Firebase.");
+                console.error(e);
                 btn.innerText = "ОШИБКА";
                 btn.disabled = false;
             }
