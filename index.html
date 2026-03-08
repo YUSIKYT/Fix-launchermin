@@ -53,6 +53,14 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
         }
+
+        .screenshot-frame {
+            position: relative;
+            border-radius: 30px;
+            padding: 10px;
+            background: linear-gradient(135deg, rgba(255,70,70,0.3), rgba(255,255,255,0.05));
+            box-shadow: 0 60px 120px -20px rgba(0,0,0,1);
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center">
@@ -76,6 +84,13 @@
             Новое поколение лаунчера для Minecraft. Максимальная производительность и удобство.
         </p>
 
+        <!-- Блок с фото (Photo1.png) -->
+        <div class="w-full max-w-4xl mb-24 px-4">
+            <div class="screenshot-frame">
+                <img src="./Photo1.png" alt="FIX Launcher Interface" class="rounded-[22px] w-full h-auto block" onerror="this.src='https://via.placeholder.com/1200x675/111/ff4646?text=Photo1.png+Not+Found'">
+            </div>
+        </div>
+
         <a href="FIX-launcher.zip" download class="btn-premium px-16 py-6 rounded-2xl text-xl font-black uppercase tracking-widest">
             СКАЧАТЬ FIX-launcher.zip
         </a>
@@ -92,6 +107,7 @@
                 <input type="text" id="userName" placeholder="Твой ник" class="comment-input px-6 py-4 rounded-xl">
                 <textarea id="commentText" placeholder="Сообщение..." rows="3" class="comment-input px-6 py-4 rounded-xl resize-none"></textarea>
                 <button onclick="sendComment()" id="submitBtn" class="btn-premium py-4 rounded-xl text-xs font-black uppercase tracking-widest">Отправить</button>
+                <p id="errorStatus" class="text-[10px] text-red-500 font-bold uppercase text-center hidden"></p>
             </div>
 
             <div id="commentsList" class="flex flex-col gap-4">
@@ -102,10 +118,10 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // ТВОИ КЛЮЧИ
+        // ТВОИ КЛЮЧИ (С твоего скриншота)
         const firebaseConfig = {
             apiKey: "AIzaSyDIoLNV7cBd_EIaAy1HuOQ9T1AdwzEWt_I",
             authDomain: "fixlaunchersite.firebaseapp.com",
@@ -121,50 +137,50 @@
         const auth = getAuth(app);
         let currentUser = null;
 
-        // Авторизация
-        signInAnonymously(auth)
-            .then(() => console.log("Успешный вход в Firebase"))
-            .catch(e => console.error("Ошибка входа:", e));
+        // Вход
+        signInAnonymously(auth).catch(e => {
+            console.error("Auth error:", e);
+            showError("Firebase: Ошибка входа (включите Anonymous Auth)");
+        });
 
         onAuthStateChanged(auth, (user) => {
             currentUser = user;
             if (user) loadComments();
         });
 
+        function showError(msg) {
+            const el = document.getElementById('errorStatus');
+            el.innerText = msg;
+            el.classList.remove('hidden');
+            setTimeout(() => el.classList.add('hidden'), 5000);
+        }
+
         function loadComments() {
+            // КОЛЛЕКЦИЯ ДОЛЖНА БЫТЬ 'reviews', КАК В ТВОИХ RULES
             const colRef = collection(db, 'reviews');
-            // Простой запрос без сложных фильтров для стабильности
             onSnapshot(colRef, (snapshot) => {
                 const list = document.getElementById('commentsList');
                 list.innerHTML = '';
                 const docs = [];
-                snapshot.forEach(d => {
-                    const data = d.data();
-                    docs.push(data);
-                });
-
-                // Сортировка вручную в памяти
+                snapshot.forEach(d => docs.push(d.data()));
                 docs.sort((a, b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
                 
-                if(docs.length === 0) {
-                    list.innerHTML = '<div class="text-center opacity-20 text-xs uppercase font-bold">Будь первым, кто оставит отзыв!</div>';
-                }
+                if(docs.length === 0) list.innerHTML = '<div class="text-center opacity-20 text-xs uppercase font-bold">Будь первым!</div>';
                 
                 docs.forEach(data => {
                     const div = document.createElement('div');
                     div.className = 'glass p-5 rounded-2xl border border-white/5';
                     div.innerHTML = `
                         <div class="flex justify-between mb-2">
-                            <span class="text-red-500 font-black text-xs uppercase">${data.name || 'Аноним'}</span>
+                            <span class="text-red-500 font-black text-xs uppercase">${data.name || 'Игрок'}</span>
                         </div>
                         <p class="text-sm opacity-70">${data.text || ''}</p>
                     `;
                     list.appendChild(div);
                 });
-            }, (error) => {
-                console.error("Ошибка Firestore:", error);
-                document.getElementById('commentsList').innerHTML = 
-                    `<div class="text-center text-red-500 text-xs uppercase font-bold">Ошибка: ${error.message}. Проверьте Rules в Firebase!</div>`;
+            }, (err) => {
+                console.error("Read Error:", err);
+                showError("Ошибка загрузки. Проверьте Rules!");
             });
         }
 
@@ -173,33 +189,25 @@
             const textInput = document.getElementById('commentText');
             const btn = document.getElementById('submitBtn');
 
-            if (!nameInput.value || !textInput.value) {
-                alert("Заполни все поля!");
-                return;
-            }
-
-            if (!currentUser) {
-                console.log("Ждем авторизации...");
-                return;
-            }
+            if (!nameInput.value.trim() || !textInput.value.trim()) return;
+            if (!currentUser) { showError("Вход еще не выполнен..."); return; }
 
             btn.disabled = true;
             btn.innerText = "ОТПРАВКА...";
 
             try {
+                // ПИШЕМ В 'reviews'
                 await addDoc(collection(db, 'reviews'), {
-                    name: nameInput.value,
-                    text: textInput.value,
+                    name: nameInput.value.trim(),
+                    text: textInput.value.trim(),
                     time: serverTimestamp()
                 });
                 textInput.value = '';
                 btn.innerText = "ГОТОВО!";
-                setTimeout(() => { 
-                    btn.disabled = false; 
-                    btn.innerText = "ОТПРАВИТЬ"; 
-                }, 2000);
+                setTimeout(() => { btn.disabled = false; btn.innerText = "ОТПРАВИТЬ"; }, 2000);
             } catch (e) {
-                console.error("Ошибка при отправке:", e);
+                console.error("Write Error:", e);
+                showError("Ошибка записи! Проверьте Rules в Firebase.");
                 btn.innerText = "ОШИБКА";
                 btn.disabled = false;
             }
