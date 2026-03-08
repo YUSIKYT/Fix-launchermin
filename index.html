@@ -239,69 +239,59 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // Защищенная инициализация переменных
-        let firebaseConfig = {};
-        try {
-            firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        } catch(e) { console.error("Config parse error"); }
+        // ТВОИ ЛИЧНЫЕ ДАННЫЕ FIREBASE
+        const firebaseConfig = {
+            apiKey: "AIzaSyDIoLNV7cBd_EIaAy1HuOQ9T1AdwzEWt_I",
+            authDomain: "fixlaunchersite.firebaseapp.com",
+            projectId: "fixlaunchersite",
+            storageBucket: "fixlaunchersite.firebasestorage.app",
+            messagingSenderId: "887919150293",
+            appId: "1:887919150293:web:87d587bc14555dc42fce5c",
+            measurementId: "G-LFTC3SMKW4"
+        };
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'fix-launcher-site';
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        let user = null;
 
-        // Если конфиг есть (мы в среде Canvas), работаем.
-        // Если его нет (на GitHub), выводим сообщение в консоль и интерфейс.
-        if (firebaseConfig) {
-            const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
-            const auth = getAuth(app);
-            let user = null;
+        // Авторизация
+        signInAnonymously(auth).catch(e => console.error("Auth error:", e));
 
-            const initAuth = async () => {
-              try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                  await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                  await signInAnonymously(auth);
-                }
-              } catch (e) {
-                console.error("Auth failed", e);
-              }
-            };
+        onAuthStateChanged(auth, (u) => {
+            user = u;
+            if (user) setupCommentsListener();
+        });
 
-            onAuthStateChanged(auth, (u) => {
-              user = u;
-              if (user) {
-                setupCommentsListener();
-              }
-            });
+        const commentsList = document.getElementById('commentsList');
 
-            initAuth();
-
-            const commentsList = document.getElementById('commentsList');
-
-            function setupCommentsListener() {
-              const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'comments');
-              const q = query(colRef);
-
-              onSnapshot(q, (snapshot) => {
+        function setupCommentsListener() {
+            // Используем простую коллекцию 'comments' для твоего проекта
+            const colRef = collection(db, 'comments');
+            
+            onSnapshot(colRef, (snapshot) => {
                 const comments = [];
                 snapshot.forEach(doc => comments.push({ id: doc.id, ...doc.data() }));
+                // Сортировка по времени
                 comments.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 renderComments(comments);
-              }, (err) => {
+            }, (err) => {
                 console.error("Firestore Error:", err);
-                commentsList.innerHTML = '<div class="text-center py-10 text-red-500 opacity-50 text-xs font-bold">ОШИБКА БАЗЫ (GITHUB РЕЖИМ)</div>';
-              });
-            }
+                commentsList.innerHTML = `<div class="text-center py-10 text-red-500 opacity-50 text-xs font-bold uppercase tracking-widest">
+                    Ошибка доступа к базе данных.<br>Проверь "Rules" в Firebase Console!
+                </div>`;
+            });
+        }
 
-            function renderComments(comments) {
-              commentsList.innerHTML = '';
-              if (comments.length === 0) {
-                commentsList.innerHTML = '<div class="text-center py-10 opacity-20 font-bold uppercase tracking-widest text-xs">Пока нет отзывов.</div>';
+        function renderComments(comments) {
+            commentsList.innerHTML = '';
+            if (comments.length === 0) {
+                commentsList.innerHTML = '<div class="text-center py-10 opacity-20 font-bold uppercase tracking-widest text-xs">Пока нет отзывов. Будь первым!</div>';
                 return;
-              }
-              comments.forEach(data => {
+            }
+            comments.forEach(data => {
                 const date = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleDateString() : 'Только что';
                 const commentDiv = document.createElement('div');
                 commentDiv.className = 'glass p-6 rounded-2xl border border-white/5 flex flex-col gap-2';
@@ -313,48 +303,40 @@
                     <p class="text-sm opacity-60 font-medium leading-relaxed">${data.text}</p>
                 `;
                 commentsList.appendChild(commentDiv);
-              });
+            });
+        }
+
+        window.sendComment = async () => {
+            const nameInput = document.getElementById('userName');
+            const textInput = document.getElementById('commentText');
+            const btn = document.getElementById('submitBtn');
+
+            if (!nameInput.value.trim() || !textInput.value.trim()) return;
+            if (!user) {
+                btn.innerText = "ОШИБКА АВТОРИЗАЦИИ";
+                return;
             }
 
-            window.sendComment = async () => {
-              const nameInput = document.getElementById('userName');
-              const textInput = document.getElementById('commentText');
-              const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.innerText = "ОТПРАВКА...";
 
-              if (!nameInput.value.trim() || !textInput.value.trim()) return;
-              if (!user) {
-                  btn.innerText = "ОШИБКА АВТОРИЗАЦИИ";
-                  return;
-              }
-
-              btn.disabled = true;
-              btn.innerText = "ОТПРАВКА...";
-
-              try {
-                const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'comments');
+            try {
+                const colRef = collection(db, 'comments');
                 await addDoc(colRef, {
-                  name: nameInput.value.trim(),
-                  text: textInput.value.trim(),
-                  createdAt: serverTimestamp(),
-                  userId: user.uid
+                    name: nameInput.value.trim(),
+                    text: textInput.value.trim(),
+                    createdAt: serverTimestamp(),
+                    userId: user.uid
                 });
                 textInput.value = '';
                 btn.innerText = "ОТПРАВЛЕНО!";
                 setTimeout(() => { btn.innerText = "ОТПРАВИТЬ СООБЩЕНИЕ"; btn.disabled = false; }, 2000);
-              } catch (e) {
-                btn.innerText = "ОШИБКА СЕТИ";
+            } catch (e) {
+                btn.innerText = "ОШИБКА ОТПРАВКИ";
                 console.error(e);
                 setTimeout(() => { btn.disabled = false; btn.innerText = "ОТПРАВИТЬ СООБЩЕНИЕ"; }, 3000);
-              }
-            };
-        } else {
-            // Режим GitHub или локальный (без встроенных ключей)
-            document.getElementById('commentsList').innerHTML = '<div class="text-center py-10 opacity-30 text-[10px] font-bold uppercase tracking-[0.2em]">База данных работает только в режиме предварительного просмотра Canvas. Для GitHub необходимо прописать личные Firebase ключи в коде.</div>';
-            window.sendComment = () => {
-                const btn = document.getElementById('submitBtn');
-                btn.innerText = "НУЖНЫ КЛЮЧИ FIREBASE";
-            };
-        }
+            }
+        };
     </script>
 
     <script>
