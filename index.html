@@ -41,11 +41,11 @@
 
         .background-fixed {
             position: absolute;
-            /* Увеличили размер до 150% для максимального запаса при скролле */
-            top: -25%;
-            left: -25%;
-            width: 150%;
-            height: 150%;
+            /* Увеличили масштаб до 170% и сместили выше на -35%, чтобы закрыть любые дыры сверху при скролле */
+            top: -35%;
+            left: -35%;
+            width: 170%;
+            height: 170%;
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -155,7 +155,6 @@
             box-shadow: 0 40px 100px -20px rgba(0,0,0,0.8);
             transform-style: preserve-3d;
             perspective: 1000px;
-            /* Убрали начальную прозрачность, чтобы избежать проблем при наведении сразу после загрузки */
             opacity: 1 !important; 
         }
 
@@ -356,31 +355,30 @@
             gsap.registerPlugin(ScrollTrigger);
             gsap.from(".hero-title", { duration: 1.5, y: 50, opacity: 0, ease: "expo.out" });
             
-            // Исправленная анимация скриншота: он больше не имеет начального opacity: 0 в CSS
             gsap.from(".screenshot-frame", { 
                 duration: 1.5, 
                 scale: 0.9, 
                 opacity: 0, 
                 delay: 0.3, 
                 ease: "expo.out",
-                clearProps: "opacity" // Очищаем opacity после анимации, чтобы CSS hover работал корректно
+                clearProps: "opacity"
             });
             
             gsap.from(".download-section", { duration: 1, y: 30, opacity: 0, delay: 0.6, ease: "expo.out" });
             
-            // Параллакс движение обоих слоев
+            // Параллакс движение обоих слоев (уменьшили y до 15% для стабильности при огромном зуме)
             gsap.to(".background-fixed", {
-                y: "20%", // Немного увеличили движение
+                y: "15%", 
                 ease: "none",
                 scrollTrigger: {
                     trigger: "body",
                     start: "top top",
                     end: "bottom bottom",
-                    scrub: 1.2
+                    scrub: 1
                 }
             });
 
-            // Плавное перетекание фонов (Fade out bg-1, Fade in bg-2)
+            // Плавное перетекание фонов
             gsap.to("#bg-1", {
                 opacity: 0,
                 ease: "power1.inOut",
