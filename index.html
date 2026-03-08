@@ -41,13 +41,13 @@
 
         .background-fixed {
             position: absolute;
-            /* Увеличили масштаб до 170% и сместили выше на -35%, чтобы закрыть любые дыры сверху при скролле */
-            top: -35%;
-            left: -35%;
-            width: 170%;
-            height: 170%;
+            /* Экстремальное увеличение масштаба и смещение вверх, чтобы закрыть любые дыры */
+            top: -50%;
+            left: -40%;
+            width: 180%;
+            height: 200%;
             background-size: cover;
-            background-position: center;
+            background-position: center top;
             background-repeat: no-repeat;
             will-change: transform, opacity;
         }
@@ -59,7 +59,7 @@
             opacity: 1;
         }
 
-        /* Второй фон */
+        /* Второй фон (теперь с еще большим запасом сверху) */
         #bg-2 {
             background-image: url('https://www.minecraft.net/content/dam/minecraftnet/community/events/cy2025/sandstorm/Wallpapers_Carousel_MCM-Portal_1110x624.jpg');
             opacity: 0;
@@ -366,9 +366,9 @@
             
             gsap.from(".download-section", { duration: 1, y: 30, opacity: 0, delay: 0.6, ease: "expo.out" });
             
-            // Параллакс движение обоих слоев (уменьшили y до 15% для стабильности при огромном зуме)
+            // Параллакс движение обоих слоев (ограничили движение, чтобы фон не улетал слишком высоко)
             gsap.to(".background-fixed", {
-                y: "15%", 
+                y: "10%", 
                 ease: "none",
                 scrollTrigger: {
                     trigger: "body",
