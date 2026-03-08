@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FIX Launcher - Официальный сайт</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Библиотеки для эффектов -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.0/vanilla-tilt.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
         
@@ -21,105 +25,238 @@
             overflow-x: hidden;
             margin: 0;
             scroll-behavior: smooth;
+            min-height: 100vh;
+        }
+
+        /* Контейнер для нескольких фонов */
+        .background-wrap {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            overflow: hidden;
+        }
+
+        .background-fixed {
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 120%;
+            height: 120%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            will-change: transform, opacity;
+        }
+
+        /* Первый фон */
+        #bg-1 {
+            background-image: url('https://www.minecraft.net/content/dam/minecraftnet/community/events/cy2025/sandstorm/Wallpapers_Carousel_MCM-Vista_1110x624.jpg');
+            z-index: 1;
+            opacity: 1;
+        }
+
+        /* Второй фон */
+        #bg-2 {
+            background-image: url('https://www.minecraft.net/content/dam/minecraftnet/community/events/cy2025/sandstorm/Wallpapers_Carousel_MCM-Portal_1110x624.jpg');
+            opacity: 0;
+            z-index: 2;
+        }
+
+        .background-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.88);
+            z-index: -1;
         }
 
         .bg-glow {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: 
-                radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 70, 70, 0.12) 0%, transparent 40%);
-            z-index: -1;
+                radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 70, 70, 0.25) 0%, transparent 40%);
+            z-index: 0;
+            transition: background 0.1s ease;
+            pointer-events: none;
+        }
+
+        .floating-orb {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: var(--primary);
+            filter: blur(180px);
+            border-radius: 50%;
+            opacity: 0.08;
+            pointer-events: none;
+            z-index: 0;
         }
 
         .glass {
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
 
         .btn-premium {
             background: var(--primary);
-            box-shadow: 0 10px 40px -10px rgba(255, 70, 70, 0.5);
-            transition: all 0.4s ease;
+            box-shadow: 0 10px 40px -10px rgba(255, 70, 70, 0.6);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-premium::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent);
+            transform: rotate(45deg);
+            transition: 0.5s;
+        }
+
+        .btn-premium:hover::after {
+            left: 100%;
         }
 
         .btn-premium:hover {
-            transform: translateY(-5px);
+            transform: translateY(-5px) scale(1.05);
             background: var(--primary-hover);
         }
 
         .comment-input {
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
+            transition: all 0.3s ease;
+        }
+
+        .comment-input:focus {
+            border-color: var(--primary);
+            background: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 20px rgba(255, 70, 70, 0.1);
         }
 
         .screenshot-frame {
             position: relative;
             border-radius: 30px;
-            padding: 10px;
-            background: linear-gradient(135deg, rgba(255,70,70,0.3), rgba(255,255,255,0.05));
-            box-shadow: 0 60px 120px -20px rgba(0,0,0,1);
+            padding: 8px;
+            background: linear-gradient(135deg, rgba(255,70,70,0.4), rgba(255,255,255,0.1));
+            box-shadow: 0 40px 100px -20px rgba(0,0,0,0.8);
+            transform-style: preserve-3d;
+            perspective: 1000px;
         }
 
         .user-avatar {
-            width: 32px;
-            height: 32px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             border: 2px solid var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 70, 70, 0.2);
+            font-weight: 900;
+            font-size: 16px;
+            box-shadow: 0 0 15px rgba(255, 70, 70, 0.3);
+        }
+
+        .hero-title {
+            text-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            background: linear-gradient(to bottom, #fff 40%, #ccc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .review-card {
+            transition: transform 0.3s ease;
+        }
+
+        .review-card:hover {
+            transform: translateX(10px);
+            border-left: 4px solid var(--primary);
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center">
+<body class="flex flex-col items-center">
+    <!-- Фоновые слои -->
+    <div class="background-wrap">
+        <div class="background-fixed" id="bg-1"></div>
+        <div class="background-fixed" id="bg-2"></div>
+    </div>
+    <div class="background-overlay"></div>
     <div class="bg-glow" id="glow"></div>
+    <div class="floating-orb" style="top: 10%; left: -5%;" id="orb1"></div>
+    <div class="floating-orb" style="bottom: 10%; right: -5%;" id="orb2"></div>
 
     <nav class="w-full max-w-7xl px-8 py-6 flex justify-between items-center z-50">
         <div class="glass px-6 py-3 rounded-2xl">
             <span class="text-xl font-black tracking-tighter uppercase">FIX <span class="text-red-500">LAUNCHER</span></span>
         </div>
-        <div id="auth-status" class="flex items-center gap-4">
-            <!-- Статус авторизации -->
-        </div>
     </nav>
 
-    <main class="flex flex-col items-center text-center px-4 pt-16 pb-20 w-full max-w-6xl">
-        <h1 class="text-6xl md:text-[8rem] font-black mb-10 tracking-tighter uppercase leading-[0.85]">
-            ИГРАЙ С <span class="text-red-500">FIX</span>
-        </h1>
+    <main class="flex flex-col items-center text-center px-4 pt-16 pb-20 w-full max-w-6xl z-10" id="hero-section">
+        <div class="hero-content">
+            <h1 class="hero-title text-6xl md:text-[8rem] font-black mb-10 tracking-tighter uppercase leading-[0.85]">
+                ИГРАЙ С <span class="text-red-500">FIX</span>
+            </h1>
+        </div>
         
-        <div class="w-full max-w-4xl mb-24 px-4">
-            <div class="screenshot-frame">
-                <img src="./Photo1.png" alt="FIX Launcher Interface" class="rounded-[22px] w-full h-auto block" onerror="this.src='https://via.placeholder.com/1200x675/111/ff4646?text=Photo1.png+Not+Found'">
+        <div class="w-full max-w-4xl mb-24 px-4" id="tilt-container">
+            <div class="screenshot-frame" data-tilt data-tilt-max="10" data-tilt-speed="1000" data-tilt-glare data-tilt-max-glare="0.3">
+                <img src="./Photo1.png" alt="FIX Launcher Interface" class="rounded-[22px] w-full h-auto block shadow-2xl" onerror="this.src='https://via.placeholder.com/1200x675/111/ff4646?text=Photo1.png+Not+Found'">
             </div>
         </div>
 
-        <a href="FIX-launcher.zip" download class="btn-premium px-16 py-6 rounded-2xl text-xl font-black uppercase tracking-widest">
-            СКАЧАТЬ FIX-launcher.zip
-        </a>
+        <div class="download-section">
+            <a href="FIX-launcher.zip" download class="btn-premium px-16 py-6 rounded-2xl text-xl font-black uppercase tracking-widest inline-block">
+                СКАЧАТЬ FIX-launcher.zip
+            </a>
+            <p class="mt-4 opacity-50 text-[10px] uppercase font-bold tracking-widest text-white">Версия 1.0.4 • 64-bit</p>
+        </div>
     </main>
 
-    <section id="comments" class="w-full max-w-2xl px-8 pb-32">
+    <section id="comments" class="w-full max-w-2xl px-8 pb-32 z-10">
         <div class="flex flex-col gap-10">
             <div class="text-center">
-                <h2 class="text-3xl font-black uppercase mb-2">Отзывы игроков</h2>
+                <h2 class="text-3xl font-black uppercase mb-2 tracking-tighter">Отзывы <span class="text-red-500">игроков</span></h2>
+                <div class="h-1 w-20 bg-red-500 mx-auto rounded-full"></div>
             </div>
 
             <div id="comment-form-container">
-                <div class="glass p-8 rounded-3xl text-center">
-                    <p class="opacity-60 mb-6 uppercase text-xs font-bold tracking-widest">Загрузка системы авторизации...</p>
+                <div class="glass p-8 rounded-3xl flex flex-col gap-4 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                        <svg width="100" height="100" viewBox="0 0 24 24" fill="white"><path d="M14.017 21L14.017 18C14.017 16.8954 13.1216 16 12.017 16H10.017C8.91244 16 8.01701 16.8954 8.01701 18L8.01701 21M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM12 7C13.6569 7 15 8.34315 15 10C15 11.6569 13.6569 13 12 13C10.3431 13 9 11.6569 9 10C9 8.34315 10.3431 7 12 7Z"/></svg>
+                    </div>
+                    <input type="text" id="userName" placeholder="Ваш никнейм" class="comment-input px-6 py-4 rounded-xl focus:outline-none font-bold uppercase text-xs tracking-widest">
+                    <textarea id="commentText" placeholder="Напишите ваш отзыв здесь..." rows="3" class="comment-input px-6 py-4 rounded-xl resize-none focus:outline-none"></textarea>
+                    <button onclick="sendComment()" id="submitBtn" class="btn-premium py-4 rounded-xl text-xs font-black uppercase tracking-widest">Опубликовать отзыв</button>
                 </div>
             </div>
 
-            <div id="commentsList" class="flex flex-col gap-4">
-                <div class="text-center py-10 opacity-20 font-bold uppercase text-xs">Загрузка отзывов...</div>
+            <div id="commentsList" class="flex flex-col gap-6">
+                <div class="text-center py-10 opacity-40 font-bold uppercase text-xs animate-pulse">Синхронизация отзывов...</div>
             </div>
         </div>
     </section>
 
+    <footer class="pb-10 opacity-40 text-[10px] font-bold uppercase tracking-[0.3em] text-white z-10">
+        FIX Launcher &copy; 2024 • Все права защищены
+    </footer>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDIoLNV7cBd_EIaAy1HuOQ9T1AdwzEWt_I",
@@ -134,113 +271,40 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
-        
-        provider.setCustomParameters({ 
-            prompt: 'select_account',
-            // Это помогает, если основной домен блокируется
-            display: 'popup'
-        });
 
-        const authStatus = document.getElementById('auth-status');
-        const formContainer = document.getElementById('comment-form-container');
-
-        setPersistence(auth, browserLocalPersistence);
-
-        window.loginGoogle = async () => {
-            const btn = document.getElementById('login-google-btn');
-            if (btn) {
-                btn.disabled = true;
-                btn.innerText = "ОТКРЫТИЕ ОКНА...";
-            }
-            
-            try {
-                // Используем прямое обращение к signInWithPopup
-                const result = await signInWithPopup(auth, provider);
-                console.log("Успешный вход:", result.user.displayName);
-            } catch (error) {
-                console.error("Ошибка Firebase Auth:", error.code, error.message);
-                
-                let friendlyMsg = "Ошибка при входе.";
-                if (error.code === 'auth/popup-blocked') {
-                    friendlyMsg = "Браузер заблокировал окно. Разрешите всплывающие окна для этого сайта.";
-                } else if (error.code === 'auth/network-request-failed') {
-                    friendlyMsg = "Проблема с сетью или блокировщик рекламы мешает входу.";
-                } else if (error.code === 'auth/internal-error') {
-                    friendlyMsg = "Ошибка конфигурации Firebase. Проверьте Authorized Domains.";
-                }
-                
-                alert(friendlyMsg);
-                
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerText = "Войти через Google";
-                }
-            }
-        };
-
-        window.logout = () => {
-            signOut(auth).then(() => {
-                window.location.reload();
-            });
-        };
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                authStatus.innerHTML = `
-                    <div class="flex items-center gap-3 glass px-4 py-2 rounded-xl">
-                        <img src="${user.photoURL}" class="user-avatar" onerror="this.src='https://via.placeholder.com/32'">
-                        <span class="text-[10px] font-bold uppercase opacity-70">${user.displayName}</span>
-                        <button onclick="logout()" class="text-[10px] text-red-500 font-bold uppercase ml-2">Выйти</button>
-                    </div>
-                `;
-                
-                formContainer.innerHTML = `
-                    <div class="glass p-8 rounded-3xl flex flex-col gap-4">
-                        <div class="flex items-center gap-2 mb-2">
-                            <span class="text-[10px] font-bold opacity-40 uppercase">Ваш профиль:</span>
-                            <span class="text-[10px] font-bold text-red-500 uppercase">${user.displayName}</span>
-                        </div>
-                        <textarea id="commentText" placeholder="Напишите ваш отзыв здесь..." rows="3" class="comment-input px-6 py-4 rounded-xl resize-none focus:outline-none focus:border-red-500/50 transition-all"></textarea>
-                        <button onclick="sendComment()" id="submitBtn" class="btn-premium py-4 rounded-xl text-xs font-black uppercase tracking-widest">Опубликовать отзыв</button>
-                    </div>
-                `;
-            } else {
-                authStatus.innerHTML = '';
-                formContainer.innerHTML = `
-                    <div class="glass p-8 rounded-3xl text-center">
-                        <p class="opacity-60 mb-6 uppercase text-xs font-bold tracking-widest">Авторизуйтесь, чтобы оставить отзыв</p>
-                        <button id="login-google-btn" onclick="loginGoogle()" class="btn-premium px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest">
-                            Войти через Google
-                        </button>
-                    </div>
-                `;
-            }
-        });
+        signInAnonymously(auth).catch(err => console.error("Ошибка анонимного входа:", err));
 
         function initComments() {
             const colRef = collection(db, 'reviews');
             onSnapshot(colRef, (snapshot) => {
                 const list = document.getElementById('commentsList');
                 if (!list) return;
+                
                 let docs = [];
                 snapshot.forEach(d => docs.push(d.data()));
                 docs.sort((a, b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
+                
                 list.innerHTML = '';
+                
                 if(docs.length === 0) {
-                    list.innerHTML = '<div class="text-center opacity-20 text-xs uppercase font-bold py-10">Отзывов пока нет</div>';
+                    list.innerHTML = '<div class="text-center opacity-40 text-xs uppercase font-bold py-10 text-white">Отзывов пока нет</div>';
                     return;
                 }
-                docs.forEach(data => {
+                
+                docs.forEach((data, index) => {
+                    const firstLetter = (data.name || 'A').charAt(0).toUpperCase();
                     const div = document.createElement('div');
-                    div.className = 'glass p-5 rounded-2xl border border-white/5 flex gap-4 items-start';
+                    div.className = 'glass p-6 rounded-2xl border border-white/5 flex gap-4 items-start review-card';
+                    gsap.fromTo(div, {opacity: 0, x: -20}, {opacity: 1, x: 0, delay: index * 0.1});
+                    
                     div.innerHTML = `
-                        <img src="${data.photo || 'https://via.placeholder.com/32'}" class="user-avatar mt-1" onerror="this.src='https://via.placeholder.com/32'">
-                        <div>
-                            <div class="flex justify-between mb-1">
-                                <span class="text-red-500 font-black text-[10px] uppercase tracking-wider">${data.name || 'Аноним'}</span>
+                        <div class="user-avatar mt-1 text-red-500">${firstLetter}</div>
+                        <div class="flex-1">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-red-500 font-black text-[11px] uppercase tracking-widest">${data.name || 'Игрок'}</span>
+                                <span class="text-[9px] opacity-40 font-bold uppercase text-white">Проверенный отзыв</span>
                             </div>
-                            <p class="text-sm opacity-70 leading-relaxed">${data.text || ''}</p>
+                            <p class="text-sm opacity-90 leading-relaxed font-medium text-white">${data.text || ''}</p>
                         </div>
                     `;
                     list.appendChild(div);
@@ -249,23 +313,33 @@
         }
 
         window.sendComment = async () => {
+            const nameInput = document.getElementById('userName');
             const textInput = document.getElementById('commentText');
             const btn = document.getElementById('submitBtn');
-            const user = auth.currentUser;
-            if (!textInput || !textInput.value.trim() || !user) return;
+
+            const name = nameInput.value.trim();
+            const text = textInput.value.trim();
+
+            if (!name || !text) return;
+
             btn.disabled = true;
-            btn.innerText = "ПУБЛИКАЦИЯ...";
+            btn.innerText = "ОТПРАВЛЯЕМ...";
+
             try {
                 await addDoc(collection(db, 'reviews'), {
-                    name: user.displayName,
-                    photo: user.photoURL,
-                    text: textInput.value.trim(),
-                    time: serverTimestamp(),
-                    uid: user.uid
+                    name: name,
+                    text: text,
+                    time: serverTimestamp()
                 });
                 textInput.value = '';
                 btn.innerText = "ГОТОВО!";
-                setTimeout(() => { if (btn) { btn.disabled = false; btn.innerText = "Опубликовать отзыв"; } }, 2000);
+                gsap.to(btn, {scale: 1.1, duration: 0.2, yoyo: true, repeat: 1});
+                setTimeout(() => { 
+                    if (btn) {
+                        btn.disabled = false; 
+                        btn.innerText = "Опубликовать отзыв"; 
+                    }
+                }, 2000);
             } catch (e) {
                 console.error("Ошибка сохранения:", e);
                 btn.innerText = "ОШИБКА";
@@ -274,6 +348,51 @@
         };
 
         initComments();
+
+        window.onload = () => {
+            gsap.registerPlugin(ScrollTrigger);
+            gsap.from(".hero-title", { duration: 1.5, y: 50, opacity: 0, ease: "expo.out" });
+            gsap.from(".screenshot-frame", { duration: 1.5, scale: 0.9, opacity: 0, delay: 0.3, ease: "expo.out" });
+            gsap.from(".download-section", { duration: 1, y: 30, opacity: 0, delay: 0.6, ease: "expo.out" });
+            
+            // Параллакс движение обоих слоев
+            gsap.to(".background-fixed", {
+                y: "15%",
+                ease: "none",
+                scrollTrigger: {
+                    trigger: "body",
+                    start: "top top",
+                    end: "bottom bottom",
+                    scrub: 1.2
+                }
+            });
+
+            // Плавное перетекание фонов (Fade out bg-1, Fade in bg-2)
+            gsap.to("#bg-1", {
+                opacity: 0,
+                ease: "power1.inOut",
+                scrollTrigger: {
+                    trigger: "#comments",
+                    start: "top bottom", // Начинается когда секция отзывов внизу экрана
+                    end: "top center",   // Заканчивается когда секция в центре
+                    scrub: true
+                }
+            });
+
+            gsap.to("#bg-2", {
+                opacity: 1,
+                ease: "power1.inOut",
+                scrollTrigger: {
+                    trigger: "#comments",
+                    start: "top bottom",
+                    end: "top center",
+                    scrub: true
+                }
+            });
+
+            gsap.to("#orb1", { x: 50, y: 30, duration: 8, repeat: -1, yoyo: true, ease: "sine.inOut" });
+            gsap.to("#orb2", { x: -50, y: -30, duration: 10, repeat: -1, yoyo: true, ease: "sine.inOut" });
+        };
     </script>
 
     <script>
@@ -283,6 +402,19 @@
             const y = (e.clientY / window.innerHeight) * 100;
             glow.style.setProperty('--mouse-x', x + '%');
             glow.style.setProperty('--mouse-y', y + '%');
+            
+            gsap.to(".floating-orb", {
+                x: (e.clientX - window.innerWidth/2) * 0.03,
+                y: (e.clientY - window.innerHeight/2) * 0.03,
+                duration: 1.5
+            });
+        });
+
+        VanillaTilt.init(document.querySelector(".screenshot-frame"), {
+            max: 8,
+            speed: 400,
+            glare: true,
+            "max-glare": 0.3,
         });
     </script>
 </body>
