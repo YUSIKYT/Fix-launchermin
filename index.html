@@ -78,7 +78,7 @@
             <span class="text-xl font-black tracking-tighter uppercase">FIX <span class="text-red-500">LAUNCHER</span></span>
         </div>
         <div id="auth-status" class="flex items-center gap-4">
-            <!-- Сюда подставится инфо о пользователе -->
+            <!-- Статус авторизации -->
         </div>
     </nav>
 
@@ -105,12 +105,9 @@
             </div>
 
             <div id="comment-form-container">
+                <!-- Форма входа/отзыва -->
                 <div class="glass p-8 rounded-3xl text-center">
-                    <p class="opacity-60 mb-6 uppercase text-xs font-bold tracking-widest">Войдите, чтобы оставить отзыв</p>
-                    <button id="login-google-btn" onclick="loginGoogle()" class="btn-premium px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest">
-                        Войти через Google
-                    </button>
-                    <p id="auth-error-msg" class="text-red-500 text-[10px] mt-4 uppercase hidden"></p>
+                    <p class="opacity-60 mb-6 uppercase text-xs font-bold tracking-widest">Загрузка системы авторизации...</p>
                 </div>
             </div>
 
@@ -122,8 +119,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDIoLNV7cBd_EIaAy1HuOQ9T1AdwzEWt_I",
@@ -135,59 +132,53 @@
             measurementId: "G-LFTC3SMKW4"
         };
 
+        // Инициализация
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
+        
+        // Настройка провайдера
         provider.setCustomParameters({ prompt: 'select_account' });
 
         const authStatus = document.getElementById('auth-status');
         const formContainer = document.getElementById('comment-form-container');
 
-        // Гарантируем сохранение сессии в локальном хранилище
+        // Установка постоянства сессии
         setPersistence(auth, browserLocalPersistence);
 
-        // Обработка RedirectResult (на случай если сработал Redirect)
-        getRedirectResult(auth).then((result) => {
-            if (result?.user) console.log("Вход через Redirect выполнен");
-        }).catch(handleAuthError);
-
-        function handleAuthError(error) {
-            console.error("Ошибка авторизации:", error);
-            const errorMsg = document.getElementById('auth-error-msg');
-            if (errorMsg) {
-                errorMsg.innerText = "Ошибка: " + (error.code === 'auth/popup-blocked' ? "Всплывающее окно заблокировано" : error.message);
-                errorMsg.classList.remove('hidden');
-            }
-        }
-
-        // Пытаемся сначала через Popup, если не выходит - через Redirect
+        // Функция входа (Popup - самый надежный для Desktop/Chrome)
         window.loginGoogle = async () => {
             const btn = document.getElementById('login-google-btn');
-            if (btn) btn.innerText = "ВХОД...";
+            if (btn) {
+                btn.disabled = true;
+                btn.innerText = "ОЖИДАНИЕ ОКНА...";
+            }
             
             try {
+                // Пытаемся открыть всплывающее окно
                 await signInWithPopup(auth, provider);
             } catch (error) {
-                if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
-                    // Если попап заблокирован, пробуем редирект как запасной вариант
-                    signInWithRedirect(auth, provider);
-                } else {
-                    handleAuthError(error);
+                console.error("Ошибка входа:", error);
+                alert("Ошибка авторизации. Убедитесь, что всплывающие окна разрешены в браузере.");
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "Войти через Google";
                 }
-            } finally {
-                if (btn) btn.innerText = "Войти через Google";
             }
         };
 
+        // Функция выхода
         window.logout = () => {
             signOut(auth).then(() => {
                 window.location.reload();
             });
         };
 
+        // Следим за пользователем
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                // Пользователь вошел
                 authStatus.innerHTML = `
                     <div class="flex items-center gap-3 glass px-4 py-2 rounded-xl">
                         <img src="${user.photoURL}" class="user-avatar" onerror="this.src='https://via.placeholder.com/32'">
@@ -199,44 +190,58 @@
                 formContainer.innerHTML = `
                     <div class="glass p-8 rounded-3xl flex flex-col gap-4">
                         <div class="flex items-center gap-2 mb-2">
-                            <span class="text-[10px] font-bold opacity-40 uppercase">Пишете как:</span>
+                            <span class="text-[10px] font-bold opacity-40 uppercase">Ваш профиль:</span>
                             <span class="text-[10px] font-bold text-red-500 uppercase">${user.displayName}</span>
                         </div>
-                        <textarea id="commentText" placeholder="Ваш отзыв..." rows="3" class="comment-input px-6 py-4 rounded-xl resize-none"></textarea>
-                        <button onclick="sendComment()" id="submitBtn" class="btn-premium py-4 rounded-xl text-xs font-black uppercase tracking-widest">Отправить отзыв</button>
+                        <textarea id="commentText" placeholder="Напишите ваш отзыв здесь..." rows="3" class="comment-input px-6 py-4 rounded-xl resize-none focus:outline-none focus:border-red-500/50 transition-all"></textarea>
+                        <button onclick="sendComment()" id="submitBtn" class="btn-premium py-4 rounded-xl text-xs font-black uppercase tracking-widest">Опубликовать отзыв</button>
                     </div>
                 `;
             } else {
+                // Пользователь не вошел
                 authStatus.innerHTML = '';
+                formContainer.innerHTML = `
+                    <div class="glass p-8 rounded-3xl text-center">
+                        <p class="opacity-60 mb-6 uppercase text-xs font-bold tracking-widest">Авторизуйтесь, чтобы оставить отзыв</p>
+                        <button id="login-google-btn" onclick="loginGoogle()" class="btn-premium px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest">
+                            Войти через Google
+                        </button>
+                    </div>
+                `;
             }
-            loadComments();
         });
 
-        function loadComments() {
+        // Загрузка комментариев в реальном времени
+        function initComments() {
             const colRef = collection(db, 'reviews');
+            // Слушаем изменения коллекции
             onSnapshot(colRef, (snapshot) => {
                 const list = document.getElementById('commentsList');
                 if (!list) return;
-                list.innerHTML = '';
-                const docs = [];
+                
+                let docs = [];
                 snapshot.forEach(d => docs.push(d.data()));
+                
+                // Сортировка по времени (новые сверху)
                 docs.sort((a, b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
                 
+                list.innerHTML = '';
+                
                 if(docs.length === 0) {
-                    list.innerHTML = '<div class="text-center opacity-20 text-xs uppercase font-bold">Отзывов пока нет</div>';
+                    list.innerHTML = '<div class="text-center opacity-20 text-xs uppercase font-bold py-10">Отзывов пока нет</div>';
                     return;
                 }
                 
                 docs.forEach(data => {
                     const div = document.createElement('div');
-                    div.className = 'glass p-5 rounded-2xl border border-white/5 flex gap-4 items-start';
+                    div.className = 'glass p-5 rounded-2xl border border-white/5 flex gap-4 items-start animate-fade-in';
                     div.innerHTML = `
                         <img src="${data.photo || 'https://via.placeholder.com/32'}" class="user-avatar mt-1" onerror="this.src='https://via.placeholder.com/32'">
                         <div>
                             <div class="flex justify-between mb-1">
-                                <span class="text-red-500 font-black text-[10px] uppercase">${data.name || 'Игрок'}</span>
+                                <span class="text-red-500 font-black text-[10px] uppercase tracking-wider">${data.name || 'Аноним'}</span>
                             </div>
-                            <p class="text-sm opacity-70">${data.text || ''}</p>
+                            <p class="text-sm opacity-70 leading-relaxed">${data.text || ''}</p>
                         </div>
                     `;
                     list.appendChild(div);
@@ -244,6 +249,7 @@
             });
         }
 
+        // Отправка комментария
         window.sendComment = async () => {
             const textInput = document.getElementById('commentText');
             const btn = document.getElementById('submitBtn');
@@ -252,34 +258,38 @@
             if (!textInput || !textInput.value.trim() || !user) return;
 
             btn.disabled = true;
-            btn.innerText = "ОТПРАВКА...";
+            btn.innerText = "ПУБЛИКАЦИЯ...";
 
             try {
                 await addDoc(collection(db, 'reviews'), {
                     name: user.displayName,
                     photo: user.photoURL,
                     text: textInput.value.trim(),
-                    time: serverTimestamp()
+                    time: serverTimestamp(),
+                    uid: user.uid
                 });
                 textInput.value = '';
                 btn.innerText = "ГОТОВО!";
                 setTimeout(() => { 
                     if (btn) {
                         btn.disabled = false; 
-                        btn.innerText = "Отправить отзыв"; 
+                        btn.innerText = "Опубликовать отзыв"; 
                     }
                 }, 2000);
             } catch (e) {
-                console.error(e);
-                if (btn) {
-                    btn.innerText = "ОШИБКА";
-                    btn.disabled = false;
-                }
+                console.error("Ошибка сохранения:", e);
+                alert("Ошибка при сохранении отзыва. Проверьте соединение.");
+                btn.innerText = "ОШИБКА";
+                btn.disabled = false;
             }
         };
+
+        // Запуск
+        initComments();
     </script>
 
     <script>
+        // Эффект свечения за мышкой
         const glow = document.getElementById('glow');
         window.addEventListener('mousemove', (e) => {
             const x = (e.clientX / window.innerWidth) * 100;
