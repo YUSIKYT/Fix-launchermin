@@ -10,14 +10,15 @@
         
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #0a0a0a;
+            background-color: #050505;
             color: #ffffff;
             overflow-x: hidden;
             margin: 0;
+            scroll-behavior: smooth;
         }
 
         .hero-gradient {
-            background: radial-gradient(circle at center, rgba(255, 70, 70, 0.12) 0%, rgba(10, 10, 10, 1) 80%);
+            background: radial-gradient(circle at center, rgba(255, 70, 70, 0.1) 0%, rgba(5, 5, 5, 1) 85%);
         }
 
         .floating {
@@ -26,28 +27,28 @@
 
         @keyframes floating {
             0% { transform: translateY(0px); }
-            50% { transform: translateY(-15px); }
+            50% { transform: translateY(-12px); }
             100% { transform: translateY(0px); }
         }
 
         .btn-download {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             background: #ff4646;
-            box-shadow: 0 0 20px rgba(255, 70, 70, 0.4);
+            box-shadow: 0 0 25px rgba(255, 70, 70, 0.3);
         }
 
         .btn-download:hover {
             transform: scale(1.05);
             background: #ff5f5f;
-            box-shadow: 0 0 30px rgba(255, 70, 70, 0.6);
+            box-shadow: 0 0 40px rgba(255, 70, 70, 0.5);
         }
 
         .text-glow {
-            text-shadow: 0 0 20px rgba(255, 70, 70, 0.3);
+            text-shadow: 0 0 30px rgba(255, 70, 70, 0.4);
         }
 
         .screenshot-shadow {
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 20px rgba(255, 70, 70, 0.1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.9), 0 0 30px rgba(255, 70, 70, 0.05);
             border: 1px solid rgba(255,255,255,0.05);
         }
     </style>
@@ -55,11 +56,11 @@
 <body class="min-h-screen flex flex-col items-center hero-gradient">
 
     <!-- Навигация -->
-    <nav class="w-full max-w-6xl px-8 py-6 flex justify-between items-center z-10">
-        <div class="text-xl font-black tracking-tighter text-white flex items-center gap-2">
-            <span class="bg-white text-black px-2 py-0.5 rounded uppercase">FIX</span> LAUNCHER
+    <nav class="w-full max-w-6xl px-8 py-8 flex justify-between items-center z-10">
+        <div class="text-2xl font-black tracking-tighter text-white flex items-center gap-2">
+            <span class="text-red-500">FIX</span> LAUNCHER
         </div>
-        <div class="hidden md:flex gap-8 text-xs font-bold opacity-60 tracking-widest uppercase">
+        <div class="hidden md:flex gap-10 text-[10px] font-bold opacity-50 tracking-[0.2em] uppercase">
             <a href="#" class="hover:opacity-100 transition-opacity">ГЛАВНАЯ</a>
             <a href="#" class="hover:opacity-100 transition-opacity">ОСОБЕННОСТИ</a>
             <a href="#" class="hover:opacity-100 transition-opacity">ПОДДЕРЖКА</a>
@@ -67,30 +68,29 @@
     </nav>
 
     <!-- Основной контент -->
-    <main class="flex flex-col items-center text-center px-4 py-12 w-full max-w-6xl">
+    <main class="flex flex-col items-center text-center px-4 py-8 w-full max-w-6xl">
         
-        <!-- Верхняя часть с логотипом -->
-        <div class="relative mb-6">
-            <img src="./ONEPHOTO.png" alt="FIX Launcher Logo" class="w-32 h-32 md:w-40 md:h-40 object-contain floating" onerror="this.style.display='none'">
+        <!-- Логотип (из ONEPHOTO.png) -->
+        <div class="relative mb-8">
+            <img src="./ONEPHOTO.png" alt="FIX Launcher Logo" class="w-24 h-24 md:w-32 md:h-32 object-contain floating" onerror="this.style.display='none'">
         </div>
 
-        <h1 class="text-5xl md:text-7xl font-black mb-6 tracking-tighter uppercase">
+        <h1 class="text-6xl md:text-8xl font-black mb-6 tracking-tighter uppercase leading-none">
             ИГРАЙ С <span class="text-red-500 text-glow">FIX</span>
         </h1>
         
-        <p class="text-sm md:text-base opacity-50 max-w-lg mb-12 leading-relaxed font-medium uppercase tracking-wide">
-            Новое поколение лаунчера для Minecraft. Максимальная производительность, 
-            удобный интерфейс и мгновенная установка модов.
+        <p class="text-sm md:text-base opacity-40 max-w-lg mb-12 leading-relaxed font-medium uppercase tracking-[0.15em]">
+            Новое поколение лаунчера для Minecraft. Максимальная производительность и удобство.
         </p>
 
-        <!-- Скриншот лаунчера (Photo1.jpg/png) -->
-        <div class="relative w-full max-w-4xl mb-16 px-4">
-            <div class="absolute -inset-1 bg-gradient-to-r from-red-600 to-red-900 rounded-2xl blur opacity-20"></div>
-            <img src="./Photo1.jpg" alt="FIX Launcher Screenshot" class="relative rounded-xl screenshot-shadow w-full h-auto" onerror="this.src='./Photo1.png'">
+        <!-- Скриншот лаунчера (Photo1.png) -->
+        <div class="relative w-full max-w-4xl mb-20 px-4">
+            <div class="absolute -inset-2 bg-red-600 rounded-2xl blur-3xl opacity-5"></div>
+            <img src="./Photo1.png" alt="FIX Launcher Screenshot" class="relative rounded-2xl screenshot-shadow w-full h-auto" onerror="this.src='./Photo1.jpg'">
         </div>
 
         <!-- Кнопка скачивания -->
-        <a href="FIX-launcher.zip" download class="btn-download px-16 py-5 rounded-2xl text-base font-black flex items-center gap-4 tracking-[0.2em] uppercase mb-20 z-10">
+        <a href="FIX-launcher.zip" download class="btn-download px-20 py-5 rounded-2xl text-base font-black flex items-center gap-4 tracking-[0.2em] uppercase mb-24 z-10">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
             </svg>
@@ -99,7 +99,7 @@
     </main>
 
     <!-- Футер -->
-    <footer class="w-full py-12 text-center text-[10px] opacity-20 uppercase tracking-[0.4em] font-bold border-t border-white/5">
+    <footer class="w-full py-12 text-center text-[10px] opacity-20 uppercase tracking-[0.4em] font-bold border-t border-white/5 bg-black/30">
         &copy; 2024 FIX LAUNCHER TEAM. ВСЕ ПРАВА ЗАЩИЩЕНЫ.
     </footer>
 
