@@ -41,11 +41,11 @@
 
         .background-fixed {
             position: absolute;
-            /* Увеличили размер до 130% и сместили на -15%, чтобы был большой запас для движения */
-            top: -15%;
-            left: -15%;
-            width: 130%;
-            height: 130%;
+            /* Увеличили размер до 150% для максимального запаса при скролле */
+            top: -25%;
+            left: -25%;
+            width: 150%;
+            height: 150%;
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -155,6 +155,8 @@
             box-shadow: 0 40px 100px -20px rgba(0,0,0,0.8);
             transform-style: preserve-3d;
             perspective: 1000px;
+            /* Убрали начальную прозрачность, чтобы избежать проблем при наведении сразу после загрузки */
+            opacity: 1 !important; 
         }
 
         .user-avatar {
@@ -353,12 +355,22 @@
         window.onload = () => {
             gsap.registerPlugin(ScrollTrigger);
             gsap.from(".hero-title", { duration: 1.5, y: 50, opacity: 0, ease: "expo.out" });
-            gsap.from(".screenshot-frame", { duration: 1.5, scale: 0.9, opacity: 0, delay: 0.3, ease: "expo.out" });
+            
+            // Исправленная анимация скриншота: он больше не имеет начального opacity: 0 в CSS
+            gsap.from(".screenshot-frame", { 
+                duration: 1.5, 
+                scale: 0.9, 
+                opacity: 0, 
+                delay: 0.3, 
+                ease: "expo.out",
+                clearProps: "opacity" // Очищаем opacity после анимации, чтобы CSS hover работал корректно
+            });
+            
             gsap.from(".download-section", { duration: 1, y: 30, opacity: 0, delay: 0.6, ease: "expo.out" });
             
             // Параллакс движение обоих слоев
             gsap.to(".background-fixed", {
-                y: "15%",
+                y: "20%", // Немного увеличили движение
                 ease: "none",
                 scrollTrigger: {
                     trigger: "body",
@@ -374,8 +386,8 @@
                 ease: "power1.inOut",
                 scrollTrigger: {
                     trigger: "#comments",
-                    start: "top bottom", // Начинается когда секция отзывов внизу экрана
-                    end: "top center",   // Заканчивается когда секция в центре
+                    start: "top bottom",
+                    end: "top center",
                     scrub: true
                 }
             });
