@@ -105,7 +105,6 @@
             </div>
 
             <div id="comment-form-container">
-                <!-- Форма входа/отзыва -->
                 <div class="glass p-8 rounded-3xl text-center">
                     <p class="opacity-60 mb-6 uppercase text-xs font-bold tracking-widest">Загрузка системы авторизации...</p>
                 </div>
@@ -119,7 +118,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -132,35 +131,47 @@
             measurementId: "G-LFTC3SMKW4"
         };
 
-        // Инициализация
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
         
-        // Настройка провайдера
-        provider.setCustomParameters({ prompt: 'select_account' });
+        provider.setCustomParameters({ 
+            prompt: 'select_account',
+            // Это помогает, если основной домен блокируется
+            display: 'popup'
+        });
 
         const authStatus = document.getElementById('auth-status');
         const formContainer = document.getElementById('comment-form-container');
 
-        // Установка постоянства сессии
         setPersistence(auth, browserLocalPersistence);
 
-        // Функция входа (Popup - самый надежный для Desktop/Chrome)
         window.loginGoogle = async () => {
             const btn = document.getElementById('login-google-btn');
             if (btn) {
                 btn.disabled = true;
-                btn.innerText = "ОЖИДАНИЕ ОКНА...";
+                btn.innerText = "ОТКРЫТИЕ ОКНА...";
             }
             
             try {
-                // Пытаемся открыть всплывающее окно
-                await signInWithPopup(auth, provider);
+                // Используем прямое обращение к signInWithPopup
+                const result = await signInWithPopup(auth, provider);
+                console.log("Успешный вход:", result.user.displayName);
             } catch (error) {
-                console.error("Ошибка входа:", error);
-                alert("Ошибка авторизации. Убедитесь, что всплывающие окна разрешены в браузере.");
+                console.error("Ошибка Firebase Auth:", error.code, error.message);
+                
+                let friendlyMsg = "Ошибка при входе.";
+                if (error.code === 'auth/popup-blocked') {
+                    friendlyMsg = "Браузер заблокировал окно. Разрешите всплывающие окна для этого сайта.";
+                } else if (error.code === 'auth/network-request-failed') {
+                    friendlyMsg = "Проблема с сетью или блокировщик рекламы мешает входу.";
+                } else if (error.code === 'auth/internal-error') {
+                    friendlyMsg = "Ошибка конфигурации Firebase. Проверьте Authorized Domains.";
+                }
+                
+                alert(friendlyMsg);
+                
                 if (btn) {
                     btn.disabled = false;
                     btn.innerText = "Войти через Google";
@@ -168,17 +179,14 @@
             }
         };
 
-        // Функция выхода
         window.logout = () => {
             signOut(auth).then(() => {
                 window.location.reload();
             });
         };
 
-        // Следим за пользователем
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // Пользователь вошел
                 authStatus.innerHTML = `
                     <div class="flex items-center gap-3 glass px-4 py-2 rounded-xl">
                         <img src="${user.photoURL}" class="user-avatar" onerror="this.src='https://via.placeholder.com/32'">
@@ -198,7 +206,6 @@
                     </div>
                 `;
             } else {
-                // Пользователь не вошел
                 authStatus.innerHTML = '';
                 formContainer.innerHTML = `
                     <div class="glass p-8 rounded-3xl text-center">
@@ -211,30 +218,22 @@
             }
         });
 
-        // Загрузка комментариев в реальном времени
         function initComments() {
             const colRef = collection(db, 'reviews');
-            // Слушаем изменения коллекции
             onSnapshot(colRef, (snapshot) => {
                 const list = document.getElementById('commentsList');
                 if (!list) return;
-                
                 let docs = [];
                 snapshot.forEach(d => docs.push(d.data()));
-                
-                // Сортировка по времени (новые сверху)
                 docs.sort((a, b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
-                
                 list.innerHTML = '';
-                
                 if(docs.length === 0) {
                     list.innerHTML = '<div class="text-center opacity-20 text-xs uppercase font-bold py-10">Отзывов пока нет</div>';
                     return;
                 }
-                
                 docs.forEach(data => {
                     const div = document.createElement('div');
-                    div.className = 'glass p-5 rounded-2xl border border-white/5 flex gap-4 items-start animate-fade-in';
+                    div.className = 'glass p-5 rounded-2xl border border-white/5 flex gap-4 items-start';
                     div.innerHTML = `
                         <img src="${data.photo || 'https://via.placeholder.com/32'}" class="user-avatar mt-1" onerror="this.src='https://via.placeholder.com/32'">
                         <div>
@@ -249,17 +248,13 @@
             });
         }
 
-        // Отправка комментария
         window.sendComment = async () => {
             const textInput = document.getElementById('commentText');
             const btn = document.getElementById('submitBtn');
             const user = auth.currentUser;
-
             if (!textInput || !textInput.value.trim() || !user) return;
-
             btn.disabled = true;
             btn.innerText = "ПУБЛИКАЦИЯ...";
-
             try {
                 await addDoc(collection(db, 'reviews'), {
                     name: user.displayName,
@@ -270,26 +265,18 @@
                 });
                 textInput.value = '';
                 btn.innerText = "ГОТОВО!";
-                setTimeout(() => { 
-                    if (btn) {
-                        btn.disabled = false; 
-                        btn.innerText = "Опубликовать отзыв"; 
-                    }
-                }, 2000);
+                setTimeout(() => { if (btn) { btn.disabled = false; btn.innerText = "Опубликовать отзыв"; } }, 2000);
             } catch (e) {
                 console.error("Ошибка сохранения:", e);
-                alert("Ошибка при сохранении отзыва. Проверьте соединение.");
                 btn.innerText = "ОШИБКА";
                 btn.disabled = false;
             }
         };
 
-        // Запуск
         initComments();
     </script>
 
     <script>
-        // Эффект свечения за мышкой
         const glow = document.getElementById('glow');
         window.addEventListener('mousemove', (e) => {
             const x = (e.clientX / window.innerWidth) * 100;
