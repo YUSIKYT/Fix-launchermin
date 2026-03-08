@@ -107,9 +107,10 @@
             <div id="comment-form-container">
                 <div class="glass p-8 rounded-3xl text-center">
                     <p class="opacity-60 mb-6 uppercase text-xs font-bold tracking-widest">Войдите, чтобы оставить отзыв</p>
-                    <button onclick="loginGoogle()" class="btn-premium px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest">
+                    <button id="login-google-btn" onclick="loginGoogle()" class="btn-premium px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest">
                         Войти через Google
                     </button>
+                    <p id="auth-error-msg" class="text-red-500 text-[10px] mt-4 uppercase hidden"></p>
                 </div>
             </div>
 
@@ -142,22 +143,35 @@
         const authStatus = document.getElementById('auth-status');
         const formContainer = document.getElementById('comment-form-container');
 
-        // Проверка результата перенаправления при загрузке страницы
-        getRedirectResult(auth).catch((error) => {
-            console.error("Ошибка при возврате из Google:", error);
+        // Обработка результата возврата из Google
+        getRedirectResult(auth).then((result) => {
+            if (result?.user) {
+                console.log("Успешный вход через Google");
+            }
+        }).catch((error) => {
+            console.error("Ошибка входа:", error);
+            const errorMsg = document.getElementById('auth-error-msg');
+            if (errorMsg) {
+                errorMsg.innerText = "Ошибка авторизации: " + error.message;
+                errorMsg.classList.remove('hidden');
+            }
         });
 
-        // Используем Redirect вместо Popup для стабильности
+        // Функция входа
         window.loginGoogle = () => {
+            const btn = document.getElementById('login-google-btn');
+            if (btn) btn.innerText = "ПЕРЕНАПРАВЛЕНИЕ...";
             signInWithRedirect(auth, provider);
         };
 
+        // Функция выхода
         window.logout = () => {
             signOut(auth).then(() => {
-                window.location.reload(); // Перезагружаем для чистоты состояния
+                window.location.reload();
             });
         };
 
+        // Слушатель состояния пользователя
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 authStatus.innerHTML = `
@@ -183,9 +197,10 @@
                 formContainer.innerHTML = `
                     <div class="glass p-8 rounded-3xl text-center">
                         <p class="opacity-60 mb-6 uppercase text-xs font-bold tracking-widest">Войдите, чтобы оставить отзыв</p>
-                        <button onclick="loginGoogle()" class="btn-premium px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest">
+                        <button id="login-google-btn" onclick="loginGoogle()" class="btn-premium px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest">
                             Войти через Google
                         </button>
+                        <p id="auth-error-msg" class="text-red-500 text-[10px] mt-4 uppercase hidden"></p>
                     </div>
                 `;
             }
@@ -196,12 +211,16 @@
             const colRef = collection(db, 'reviews');
             onSnapshot(colRef, (snapshot) => {
                 const list = document.getElementById('commentsList');
+                if (!list) return;
                 list.innerHTML = '';
                 const docs = [];
                 snapshot.forEach(d => docs.push(d.data()));
                 docs.sort((a, b) => (b.time?.seconds || 0) - (a.time?.seconds || 0));
                 
-                if(docs.length === 0) list.innerHTML = '<div class="text-center opacity-20 text-xs uppercase font-bold">Отзывов пока нет</div>';
+                if(docs.length === 0) {
+                    list.innerHTML = '<div class="text-center opacity-20 text-xs uppercase font-bold">Отзывов пока нет</div>';
+                    return;
+                }
                 
                 docs.forEach(data => {
                     const div = document.createElement('div');
@@ -225,7 +244,7 @@
             const btn = document.getElementById('submitBtn');
             const user = auth.currentUser;
 
-            if (!textInput.value.trim() || !user) return;
+            if (!textInput || !textInput.value.trim() || !user) return;
 
             btn.disabled = true;
             btn.innerText = "ОТПРАВКА...";
@@ -239,11 +258,18 @@
                 });
                 textInput.value = '';
                 btn.innerText = "ГОТОВО!";
-                setTimeout(() => { btn.disabled = false; btn.innerText = "Отправить отзыв"; }, 2000);
+                setTimeout(() => { 
+                    if (btn) {
+                        btn.disabled = false; 
+                        btn.innerText = "Отправить отзыв"; 
+                    }
+                }, 2000);
             } catch (e) {
                 console.error(e);
-                btn.innerText = "ОШИБКА";
-                btn.disabled = false;
+                if (btn) {
+                    btn.innerText = "ОШИБКА";
+                    btn.disabled = false;
+                }
             }
         };
     </script>
