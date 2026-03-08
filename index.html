@@ -105,7 +105,6 @@
             </div>
 
             <div id="comment-form-container">
-                <!-- Форма появится только после входа -->
                 <div class="glass p-8 rounded-3xl text-center">
                     <p class="opacity-60 mb-6 uppercase text-xs font-bold tracking-widest">Войдите, чтобы оставить отзыв</p>
                     <button onclick="loginGoogle()" class="btn-premium px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest">
@@ -123,7 +122,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDIoLNV7cBd_EIaAy1HuOQ9T1AdwzEWt_I",
@@ -143,21 +142,27 @@
         const authStatus = document.getElementById('auth-status');
         const formContainer = document.getElementById('comment-form-container');
 
-        // Глобальные функции для кнопок
+        // Проверка результата перенаправления при загрузке страницы
+        getRedirectResult(auth).catch((error) => {
+            console.error("Ошибка при возврате из Google:", error);
+        });
+
+        // Используем Redirect вместо Popup для стабильности
         window.loginGoogle = () => {
-            signInWithPopup(auth, provider).catch(console.error);
+            signInWithRedirect(auth, provider);
         };
 
         window.logout = () => {
-            signOut(auth);
+            signOut(auth).then(() => {
+                window.location.reload(); // Перезагружаем для чистоты состояния
+            });
         };
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // Пользователь вошел
                 authStatus.innerHTML = `
                     <div class="flex items-center gap-3 glass px-4 py-2 rounded-xl">
-                        <img src="${user.photoURL}" class="user-avatar">
+                        <img src="${user.photoURL}" class="user-avatar" onerror="this.src='https://via.placeholder.com/32'">
                         <span class="text-[10px] font-bold uppercase opacity-70">${user.displayName}</span>
                         <button onclick="logout()" class="text-[10px] text-red-500 font-bold uppercase ml-2">Выйти</button>
                     </div>
@@ -174,7 +179,6 @@
                     </div>
                 `;
             } else {
-                // Пользователь не вошел
                 authStatus.innerHTML = '';
                 formContainer.innerHTML = `
                     <div class="glass p-8 rounded-3xl text-center">
@@ -203,7 +207,7 @@
                     const div = document.createElement('div');
                     div.className = 'glass p-5 rounded-2xl border border-white/5 flex gap-4 items-start';
                     div.innerHTML = `
-                        <img src="${data.photo || 'https://via.placeholder.com/32'}" class="user-avatar mt-1">
+                        <img src="${data.photo || 'https://via.placeholder.com/32'}" class="user-avatar mt-1" onerror="this.src='https://via.placeholder.com/32'">
                         <div>
                             <div class="flex justify-between mb-1">
                                 <span class="text-red-500 font-black text-[10px] uppercase">${data.name || 'Игрок'}</span>
@@ -235,7 +239,7 @@
                 });
                 textInput.value = '';
                 btn.innerText = "ГОТОВО!";
-                setTimeout(() => { btn.disabled = false; btn.innerText = "ОТПРАВИТЬ ОТЗЫВ"; }, 2000);
+                setTimeout(() => { btn.disabled = false; btn.innerText = "Отправить отзыв"; }, 2000);
             } catch (e) {
                 console.error(e);
                 btn.innerText = "ОШИБКА";
